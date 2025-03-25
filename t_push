@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# Define the remote destination
+REMOTE_DEST="turtle33:~/robot"
+
+# Define the files to copy
+FILES=("./second_task.py" "./functions.py")
+
+# SCP the files to the remote destination
+scp "${FILES[@]}" "$REMOTE_DEST"
+
+# Check if the SCP command succeeded
+if [ $? -eq 0 ]; then
+    echo "Files successfully copied to $REMOTE_DEST"
+else
+    echo "Error copying files to $REMOTE_DEST"
+fi
+

@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Define the remote source
+REMOTE_SOURCE="turtle33:~/robot/*"
+
+# Define the local destination folder
+LOCAL_DEST="."
+
+# Ensure the local destination exists
+mkdir -p "$LOCAL_DEST"
+
+# SCP to fetch files from the remote source to the local destination
+scp "$REMOTE_SOURCE" "$LOCAL_DEST"
+
+# Check if the SCP command succeeded
+if [ $? -eq 0 ]; then
+    echo "Files successfully fetched from $REMOTE_SOURCE to $LOCAL_DEST"
+else
+    echo "Error fetching files from $REMOTE_SOURCE"
+fi
