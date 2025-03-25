@@ -4,7 +4,7 @@
 REMOTE_DEST="turtle33:~/robot"
 
 # Define the files to copy
-FILES=("./second_task.py" "./functions.py")
+FILES=("./second_task.py" "./functions.py" "./movements.py" "./calc.py")
 
 # SCP the files to the remote destination
 scp "${FILES[@]}" "$REMOTE_DEST"

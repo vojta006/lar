@@ -54,7 +54,8 @@ def finding_midlle_of_contours(cnt):
     center_x = int(round(sum(x_coords) / len(x_coords)))
     center_y = int(round(sum(y_coords) / len(y_coords)))
 
-    #print(f"Střed kontury na ose X: {center_x}")
+    print(f"Střed kontury na ose X: {center_x}")
+    print(f"Střed kontury na ose Y: {center_y}")
     return center_x, center_y
 
  
@@ -150,6 +151,45 @@ def find_ball_center(ball):
 
     return [None, None]
 
+def hood_depth(point_cloud, x, y, threshold=0.20, window_size=4):
+    "Returns the depth of a neighborhood of a given pixel in range 640(x) 480(y)"
+    #Returns point cloud shape
+    h, w, _ = point_cloud.shape
+
+    #Out of bounds
+    if not (0 <= x < w and 0 <= y < h):
+        print(f"Out of bounds")
+        return None
+
+    #Find limits of a given window (window ie.: Area in which we look for pixels)
+    half_size = window_size // 2
+    x_min, x_max = max(0, x - half_size), min(w, x + half_size + 1)
+    y_min, y_max = max(0, y - half_size), min(h, y + half_size + 1)
+
+    #Compute neighborhood
+    neighborhood = point_cloud[y_min:y_max, x_min:x_max, 2]
+    print("Printing neighborhood:")
+    print(*neighborhood)
+    #Filter out all NaN pixels
+    valid_values = neighborhood[~np.isnan(neighborhood)]
+    #Filter out pixels with depth 0
+    valid_values = valid_values[valid_values > 0]
+
+    #No valid values
+    if valid_values.size == 0:
+        print(f"Window too small or in an NaN lake")
+        return None
+
+    #Find median among valid values
+    median_depth = np.median(valid_values)
+    #Compute threshold
+    similar_values = valid_values[np.abs(valid_values - median_depth) < threshold]
+    
+    if similar_values.size > 0:
+        return np.mean(similar_values)
+    else:
+        print("Threshold too narrow")
+        return None
 
 def depth_of_pixel(point_cloud, x, y):
     "Returns the depth of a given pixel in range 640(x) 480(y)"
