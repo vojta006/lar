@@ -1,7 +1,5 @@
-
 import cv2
 import numpy as np
-
 
 def classify_circle(possible_ball):
     hull = cv2.convexHull(possible_ball)
@@ -54,8 +52,6 @@ def finding_midlle_of_contours(cnt):
     center_x = int(round(sum(x_coords) / len(x_coords)))
     center_y = int(round(sum(y_coords) / len(y_coords)))
 
-    print(f"Střed kontury na ose X: {center_x}")
-    print(f"Střed kontury na ose Y: {center_y}")
     return center_x, center_y
 
  
@@ -165,11 +161,11 @@ def hood_depth(point_cloud, x, y, threshold=0.20, window_size=4):
     half_size = window_size // 2
     x_min, x_max = max(0, x - half_size), min(w, x + half_size + 1)
     y_min, y_max = max(0, y - half_size), min(h, y + half_size + 1)
+    
 
     #Compute neighborhood
-    neighborhood = point_cloud[y_min:y_max, x_min:x_max, 2]
-    print("Printing neighborhood:")
-    print(*neighborhood)
+    neighborhood = point_cloud[y_min:y_max, x_min:x_max, :]
+    neighborhood = np.sqrt(neighborhood[..., 0]**2 + neighborhood[..., 2]**2)
     #Filter out all NaN pixels
     valid_values = neighborhood[~np.isnan(neighborhood)]
     #Filter out pixels with depth 0

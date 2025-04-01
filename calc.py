@@ -1,4 +1,5 @@
 from math import sqrt, pi, cos, acos, asin, sin, atan
+from functions import hood_depth
 
 #TODO problemove hodnoty pro vypocet
 #87 201
@@ -12,15 +13,12 @@ def count_pos(dl, dr, x_coords):
 
     beta = acos((b**2 - c**2 - a**2)/(-2*c*a))
     alpha = acos((a**2 - b**2 - c**2)/(-2*b*c))
-    print("alpha:", alpha)
-    print("beta:", beta)
+    print("alpha:", alpha*57)
+    print("beta:", beta*57)
 
     y = c*sin(beta)
     xr = sqrt(c**2 - y**2)
     xl = sqrt(b**2 - y**2)
-    print("y",y)
-    print('xl', xl)
-    print('xr', xr)
     x = 0
 
     if eq(xl+xr,0.7):
@@ -32,8 +30,7 @@ def count_pos(dl, dr, x_coords):
     else:
         print("Chyba, výpočet souřadnic je špatně.")
     
-    print('x', x+0.35)
-    return [x + 0.35, y, count_rotation(alpha, beta, x_coords[0], x_coords[1]) ]
+    return [x + 0.35, y, count_rotation(alpha, beta, x_coords[0], x_coords[1])]
 
 
 #jsou sloupky dostatečně ve středu obrázku?
@@ -56,28 +53,29 @@ def pos_behind_the_ball(ball_pos, dst):
 def pixel_to_angle(x_pixel):
     return -(x_pixel - 320)*pi/(320*4)
 
-def count_relative_ball_pos(b_coords, curr_pos):
+#we assume that the ball is directly in front of the robot
+def count_relative_ball_pos(b_coords, curr_pos, turtle):
     turtle.wait_for_point_cloud()
     point_cloud = turtle.get_point_cloud()
     ball_dst = hood_depth(point_cloud, *b_coords) + 0.15 #+ diameter
     print("estimated ball dst:", ball_dst)
-    alpha = pixel_to_angle(b_coords[0]) #TODO odladit převod
-    print("alpha:", alpha)
+
+    #alpha = pixel_to_angle(b_coords[0]) #TODO odladit převod
+    alpha = 0
     beta  = curr_pos[2]
-    #rel_rob_x = ball_dst*sin(alpha) #relative x coordinate to robot coord system
-    #rel_rob_y = ball_dst*cos(alpha)
-    angle = beta - alpha
-    return [ball_dst*cos(angle), ball_dst*sin(angle), 0]
+    print("Beta:", beta*57)
+    angle = -beta
+    print(ball_dst*sin(angle))
+    return [ball_dst*sin(angle), ball_dst*cos(angle), 0]
 
 def count_rotation(alpha, beta, xl, xr):
-    rot = None
-    if beta > pi/2:
-        rot = beta - pi/2
-        rot += (xr - 320)*alpha/(xr-xl)
-    else:
-        rot = pi/2 - beta
-        rot += (xr - 320)*alpha/(xr-xl)
+    delta = alpha*(xr-320)/(xr-xl) #rad
+    print("delta:", delta*57)
+    gamma = acos(sin(beta))
+    print("gamma:", gamma*57)
+    rot = gamma - delta
+    print("rot:", rot*57)
+    #we counted rot neccessary to be straigth, but we want it in opposite way
+    return -rot
 
-    return rot
-
-
+    

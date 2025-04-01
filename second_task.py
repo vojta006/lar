@@ -21,45 +21,87 @@ def take_hsv_picture():
     while True:
         turtle.wait_for_rgb_image()
         bgr_image = turtle.get_rgb_image()
-        print(bgr_image.shape)
         break
     return cv2.cvtColor(bgr_image, cv2.COLOR_BGR2HSV)
 
 
 def second_task():
     event.wait()  # wait for button push
-    pos = count_robot_pos() #x, y, rot; or None - then call this function in loop with rotating
+    
+    pos = get_robot_pos()
 
     if pos is None:
         print("Nevidíme sloupky")
         return
 
     print(*pos)
-    return
-    dest = [0, 2, 0]
-    go_to_pos(pos, dest)
+
+    go_to_pos(pos, [0, 2, 0], turtle)
+
+    pos = get_robot_pos()
+    rot = rotate_to_center_ball()
+    pos[2] += rot[2]
+
+    #pos = count_robot_pos() #x, y, rot; or None - then call this function in loop with rotating
+
+    #dest = [0, 3, 0]
+    #go_to_pos(pos, dest, turtle)
+    #pos = get_robot_pos()
+
+    #rotate to be aligned
+    rel_ball_pos = scan_ball_pos(pos, turtle) #if it cannot see the ball, it returns None
+    print("relative pos", *rel_ball_pos)
+
+    if rel_ball_pos is None:
+        print("Nevidíme míč.")
+        return
     
-    #rel_ball_pos = scan_ball_pos(dest) #if it cannot see the ball, it returns None
-    #if rel_ball_pos is None:
-    #    print("Nevidíme míč.")
-    #    return
-    #
-    #ball_pos = [rel_ball_pos[0], 2 + rel_ball_pos[0], 0]
-    #print(*ball_pos)
+    ball_pos = [pos[0] + rel_ball_pos[0], pos[1] - rel_ball_pos[1], 0]
+    print("Absolute ball pos:", *ball_pos)
+    behind_the_ball = pos_behind_the_ball(ball_pos, 1.5)
+    print("Pos behind_the_ball:", *behind_the_ball)
+    go_to_pos(pos, behind_the_ball, turtle)
 
     #go_to_pos(dest , pos_behind_the_ball(ball_pos, 0.5)) #TODO count new precise pos instead of dest
 
+
+#return rotation
+def rotate_to_center_ball(): 
     
-#stop on bounce
-def follow_ball_line():
-    pass
+    rate = Rate(100)
+    turtle.reset_odometry()
+    turtle.wait_for_odometry()
 
-#TODO rozchodit funkci na detekci pozice míče
-#TODO pohyb po hřišti moc nefunguje
+    while True:
+        hsv_img = take_hsv_picture()
+        ball = find_ball(hsv_img)
 
+        if ball is None:
+            turtle.cmd_velocity(angular=0.6)
+            rate.sleep()
+        else:
+            b_coords = find_ball_center(ball)
+            print(b_coords[0]-320)
+            if abs(320 - b_coords[0]) < 5:
+                turtle.cmd_velocity(angular=0)
+                break
+            else:
+                speed = 0.3
+                if abs(b_coords[0] - 320) < 40:
+                    speed = 0.15
+
+                elif abs(b_coords[0] - 320) < 20:
+                    speed = 0.05
+
+                if b_coords[0] > 320:
+                    speed = -speed
+
+                turtle.cmd_velocity(angular=speed)
+
+    return turtle.get_odometry()
 
 #we assume that the rotation is known and noted in curr_pos
-def scan_ball_pos(curr_pos): 
+def scan_ball_pos(curr_pos, turtle): 
     hsv_img = take_hsv_picture()
     ball = find_ball(hsv_img)
 
@@ -70,7 +112,7 @@ def scan_ball_pos(curr_pos):
     b_coords = find_ball_center(ball)
     print("souřadnice míče v obrázku", *b_coords)
 
-    return count_relative_ball_pos(b_coords, curr_pos)
+    return count_relative_ball_pos(b_coords, curr_pos, turtle)
 
 #TODO wait for odometry sleep
 def rotate_to_center_net():
@@ -80,7 +122,7 @@ def rotate_to_center_net():
         hsv_image = take_hsv_picture()
         net, x_c, y_c = find_soccer_net_array(hsv_image)
 
-        if net[0] is not None and net[1] is not None and centered(*x_c):
+        if net[0] is not None and net[1] is not None:
             return i*2*pi/parts #how much had we rotate 
 
         rotate(2*pi/parts, turtle)
@@ -91,7 +133,7 @@ def rotate_to_center_net():
 #from one position, without moving in space
 def count_robot_pos():
     successful = 0
-    pictures_to_take = 1
+    pictures_to_take = 3
 
     if rotate_to_center_net() is None:
         return None
@@ -131,10 +173,7 @@ def get_robot_pos(): #or None if it cannot see the pillars
     if x_c[0] > x_c[1]: #cones are switched
         dl, dr = dr, dl
         x_c[0], x_c[1] = x_c[1], x_c[0]
-    print(*x_c)
 
-    print(dl, dr)
-    
     return count_pos(dl, dr, x_c)
 
 
