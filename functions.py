@@ -54,54 +54,50 @@ def finding_midlle_of_contours(cnt):
 
     return center_x, center_y
 
- 
 def find_soccer_net_array(hsv_image):
+    #This fuction sort pillars by their mass of conotur area
     lower = np.array([75, 80, 50])
     upper = np.array([130, 255, 255])
     bin_mask = cv2.inRange(hsv_image, lower, upper)
 
-    #plt.imshow(bin_mask)
-    #plt.show()
-
     contours, hierarchy = cv2.findContours(bin_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-
     soccer_net_array = []
     possible_pillar = None
     x_pillar = []
     y_pillar = []
 
-    for cnt in contours:
+    # Filtrovat a seřadit kontury podle velikosti (od největší po nejmenší)
+    sorted_contours = sorted(
+        [cnt for cnt in contours if 500 <= cv2.contourArea(cnt) <= 14000 and classify_pillar(cnt)],
+        key=cv2.contourArea,
+        reverse=True
+    )
 
-        actual_area = cv2.contourArea(cnt)
-        if actual_area < 500 or actual_area > 14000:
-            continue
-
-        possible_pillar = cnt
-
-        if not classify_pillar(possible_pillar):
-            continue
-        
+    for cnt in sorted_contours:
         soccer_net_array.append(cnt)
         x_coord_of_pillar, y_coord_of_pillar = finding_midlle_of_contours(cnt)
         x_pillar.append(x_coord_of_pillar)
         y_pillar.append(y_coord_of_pillar)
 
-        continue
-
-    if(len(x_pillar) < 2):
+    # Zajištění minimálního počtu prvků v seznamu
+    if len(x_pillar) < 2:
         x_pillar.append(None)
         x_pillar.append(None)
 
+    if len(soccer_net_array) < 2:
+        soccer_net_array.append(None)
+        soccer_net_array.append(None)
+    
     if(len(y_pillar) < 2):
         y_pillar.append(None)
         y_pillar.append(None)
 
 
-    #print(f"Střed kontury1: {x_pillar[0]},Střed kontury2: {x_pillar[1]} ")
-
-    if(len(soccer_net_array) < 2):
-        soccer_net_array.append(None)
-        soccer_net_array.append(None)
+    if None not in x_pillar[:2] and x_pillar[0] > x_pillar[1]:
+        # Prohodíme pořadí, pokud první kontura je víc vpravo než druhá
+        soccer_net_array[0], soccer_net_array[1] = soccer_net_array[1], soccer_net_array[0]
+        x_pillar[0], x_pillar[1] = x_pillar[1], x_pillar[0]
+        y_pillar[0], y_pillar[1] = y_pillar[1], y_pillar[0]
 
     return soccer_net_array, x_pillar, y_pillar
 

@@ -41,9 +41,6 @@ def centered(x1, x2):
     print("Centered:", mx)
     return mx > 20 
 
-def count_rotation(coords):
-    # 320 - half of the picture, 6 - Bulgarian constant
-    return (coords[0] - 320)*pi / (6*180)
 
 def pos_behind_the_ball(ball_pos, dst):
     alpha = atan(ball_pos[0]/ball_pos[1])

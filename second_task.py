@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import threading
 from robolab_turtlebot import Turtlebot, Rate, get_time
-from math import sqrt, pi, cos, acos, asin, sin, atan
+from math import pi
 from time import sleep
 
 from calc import *
@@ -24,14 +24,51 @@ def take_hsv_picture():
         break
     return cv2.cvtColor(bgr_image, cv2.COLOR_BGR2HSV)
 
+#alternative
+#def second_task():
+#
+#    event.wait()  # wait for button push
+#    
+#    success = False
+#
+#    while not success:
+#
+#        if rotate_to_center_ball() is None:
+#            pos = count_robot_pos()
+#            if pos is None:
+#                #We can't see the ball nor the pillars
+#                #TODO run some safety function
+#                return None
+#            go_to_pos(pos, [0, 2, 0], turtle)
+#            rotate_to_center_ball() #this may fail
+#    
+#        #go up to 1 meter from the ball
+#        ball_dst = measure_ball_dst() #it can return None
+#        if ball_dst > 1
+#            incremental_go_straight(ball_dst - 1, 1, turtle)
+#    
+#        pos = count_robot_pos()
+#        go_to_pos(pos, [0, 2, 0], turtle)
+#    
+#        pos = count_robot_pos()
+#        rot = rotate_to_center_ball()
+#        pos[2] += rot[2] #we have to update rotation
+#        rel_ball_pos = scan_ball_pos(pos, turtle) #this may fail
+#        ball_pos = [pos[0] + rel_ball_pos[0], pos[1] - rel_ball_pos[1], 0]
+#        pos_behind_the_ball = pos_behind_the_ball(ball_pos, 1.5)
+#        go_to_pos(pos, pos_behind_the_ball, turtle)
+#    
+#        #TODO call PID function
+#        if pid_regulator():
+#            success = True
 
 def second_task():
     event.wait()  # wait for button push
-    
-    pos = get_robot_pos()
+
+    pos = count_robot_pos()
 
     if pos is None:
-        print("Nevidíme sloupky")
+        print("Nevidím sloupky")
         return
 
     print(*pos)
@@ -65,8 +102,8 @@ def second_task():
     #go_to_pos(dest , pos_behind_the_ball(ball_pos, 0.5)) #TODO count new precise pos instead of dest
 
 
-#return rotation
-def rotate_to_center_ball(): 
+#TODO return None if it rotates more time around and cannot see the ball
+def rotate_to_center_ball(precision = 10): 
     
     rate = Rate(100)
     turtle.reset_odometry()
@@ -82,7 +119,7 @@ def rotate_to_center_ball():
         else:
             b_coords = find_ball_center(ball)
             print(b_coords[0]-320)
-            if abs(320 - b_coords[0]) < 5:
+            if abs(320 - b_coords[0]) < precision:
                 turtle.cmd_velocity(angular=0)
                 break
             else:
@@ -114,9 +151,21 @@ def scan_ball_pos(curr_pos, turtle):
 
     return count_relative_ball_pos(b_coords, curr_pos, turtle)
 
+def measure_ball_dst():
+    hsv_img = take_hsv_picture()
+    ball = find_ball(hsv_image)
+    if ball is None:
+        return None
+    b_center = find_ball_center(ball)
+    point_cloud = turtle.get_point_cloud()
+    dst = hood_depth(point_cloud, *b_coords)
+    return dst
+
+
 #TODO wait for odometry sleep
 def rotate_to_center_net():
     
+    #rotation parts
     parts = 12
     for i in range(parts):
         hsv_image = take_hsv_picture()
@@ -133,7 +182,7 @@ def rotate_to_center_net():
 #from one position, without moving in space
 def count_robot_pos():
     successful = 0
-    pictures_to_take = 3
+    pictures_to_take = 3 #take three pictures
 
     if rotate_to_center_net() is None:
         return None
