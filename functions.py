@@ -51,16 +51,16 @@ def find_width_of_ball(cnt):
     width = max_x-min_x
     return width
 
-def goalnet_center_by_one_pillar(p1x,bx,cnt):
+def goalnet_center_by_one_pillar(p1x,bx,cnt, net_width):
     if(p1x>bx):
         min_x = finding_leftmost_point(cnt)
         half_of_pillar = p1x - min_x
-        middle_goalnet = p1x-11*half_of_pillar#11 in case, that pillar width is 7cm and goalnet width is 70 cm
+        middle_goalnet = p1x-net_width/2.5*half_of_pillar#11 in case, that pillar width is 7cm and goalnet width is 70 cm
         return middle_goalnet
     else:
         max_x = finding_righttmost_point(cnt)
         half_of_pillar = max_x-p1x
-        middle_goalnet = p1x+11*half_of_pillar
+        middle_goalnet = p1x+net_width/2.5*half_of_pillar
         return middle_goalnet
 
 def find_goalnet_center(hsv_img,bx):

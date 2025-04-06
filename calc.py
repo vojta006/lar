@@ -51,11 +51,11 @@ def count_relative_ball_pos(b_coords, curr_pos, turtle):
     ball_dst = hood_depth(point_cloud, *b_coords) + 0.15 #+ diameter
     print("estimated ball dst:", ball_dst)
 
-    alpha = pixel_to_angle(b_coords[0]) #TODO odladit převod
-    #alpha = 0
-    beta  = curr_pos[2]
+    alpha = pixel_to_angle(b_coords[0])
+    beta = curr_pos[2]
     print("Beta:", beta*57)
-    angle = -beta
+    print("angle:", alpha)
+    angle = -(beta + alpha)
     print(ball_dst*sin(angle))
     return [ball_dst*sin(angle), ball_dst*cos(angle), 0]
 

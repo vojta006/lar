@@ -15,6 +15,8 @@ turtle = Turtlebot(rgb=True, depth=True, pc=True)
 picture_middle = 343
 speed = 0.2
 close_flag = False
+net_size = 0
+net_measured = 0
 
 def button_event(msg):
     global event
@@ -56,28 +58,37 @@ def second_task():
         
         pos = get_robot_pos()
 
-        go_to_pos(pos, [0, 2.5, 0], turtle)
+        go_to_pos(pos, [0, 2, 0], turtle)
         go_behind_the_ball()
     
         if hit_ball():
             success = True
 
-def go_behind_the_ball():
+def go_behind_the_ball(dst = 1.5):
     if rotate_to_center_net() is None:
         print("ERROR: Unable to find the net. Exiting.")
         exit(1)
 
     pos = get_robot_pos()
-    rot = rotate_to_center_ball(precision=30)
+    if pos is None:
+        #we assume that we are exactly on the spot
+        pos = [0, 2, 0]
+
+    print(pos)
+
+    rot = rotate_to_center_ball(precision=50)
     if rot is None:
         print("ERROR: Robot can't see the ball. Exiting.")
         exit(1)
 
     pos[2] += rot[2] #we have to update rotation
     rel_ball_pos = scan_ball_pos(pos, turtle) #this may fail
+    print("Relative ball pos:", rel_ball_pos)
     ball_pos = [pos[0] + rel_ball_pos[0], pos[1] - rel_ball_pos[1], 0]
+    print("absolute ball pos:", ball_pos)
 
-    pos_behind = pos_behind_the_ball(ball_pos, 1.5)
+    pos_behind = pos_behind_the_ball(ball_pos, dst)
+    print("position behind the ball", pos_behind)
     go_to_pos(pos, pos_behind, turtle)
 
  
@@ -86,7 +97,7 @@ def hit_ball():#+angular is left
     go_now = True
     rate = Rate(100)
     delta_x = None
-    rotate_to_center_ball()
+    rotate_to_center_ball(precision = 100)
     
     while(go_now == True):
         hsv_img = take_hsv_picture()
@@ -99,24 +110,25 @@ def hit_ball():#+angular is left
 
         else:
             b_width = find_width_of_ball(ball)
-            if(b_width < (640/6)):
+            if(b_width < (640/5)):
                 delta_x = ball_far_far_away(bx,hsv_img)
             elif(delta_x != None and abs(delta_x) < 35): #35 pixels difference is not good enough for our goal
                 ball_close(bx)
             else:
-                print("robot couldnt hanlde the regulation so it shoud start from beginning")
+                print("robot couldnt handle the regulation so it should start from the beginning")
                 turtle.play_sound(6)
                 return False
         rate.sleep()
 
     return True
+
 def ball_far_far_away(bx,hsv_img):#main thing is to get ball center to the center of goalnet
     
     rad_per_pixel = 1.63*10**(-3)#pi/3/640
     max_ang_speed = 2
 
     if(bx!= None):
-        mpx = find_goalnet_center(hsv_img,bx)
+        mpx = find_goalnet_center(hsv_img,bx, net_size)
 
 
     if(mpx != None):
@@ -146,14 +158,18 @@ def ball_close(bx):#main thing is to hit ball straight
     turtle.cmd_velocity(linear = ampl_factor_lin*speed, angular=2*ampl_factor_ang)
 
 
-#def second_task():
-#    event.wait()
-#    pos = get_robot_pos()
-#
-#    #pos = count_robot_pos()
-#
-#    go_to_pos(pos, [0, 2, 0], turtle)
-#    go_to_pos([0,2,0], [0, 0, 0], turtle)
+def second_task():
+    event.wait()
+    pos = get_robot_pos()
+    go_to_pos(pos, [0, 2, 0], turtle)
+    pos = get_robot_pos()
+    print("Pos [0, 2, 0] is in fact: " *pos)
+    go_behind_the_ball(1)
+    hit_ball()
+
+    pos = scan_ball_pos([0,0,0], turtle)
+    print(pos)
+    go_to_pos([0,0,0], [pos[0], -pos[1], 0], turtle)
 
 
 def rotate_to_center_ball(precision = 10): 
@@ -179,17 +195,19 @@ def rotate_to_center_ball(precision = 10):
         else:
             ball_seen = True
             b_coords = find_ball_center(ball)
-            print(b_coords[0]-320)
-            if abs(320 - b_coords[0]) < precision:
+            print(b_coords[0]-343)
+            if abs(343 - b_coords[0]) < precision:
                 turtle.cmd_velocity(angular=0)
                 break
             else:
                 speed = 0.3
-                if abs(b_coords[0] - 320) < 40:
+                if abs(b_coords[0] - 320) < 150:
                     speed = 0.15
+                if abs(b_coords[0] - 320) < 40:
+                    speed = 0.1
 
                 elif abs(b_coords[0] - 320) < 20:
-                    speed = 0.05
+                    speed = 0.03
 
                 if b_coords[0] > 320:
                     speed = -speed
@@ -235,34 +253,6 @@ def rotate_to_center_net():
 
     return None
 
-#def count_robot_pos():
-#
-#    successful = 0
-#    parts = 16
-#    overall_pos = [0, 0, 0]
-#
-#    for i in range(parts):
-#        rotate(2*pi/parts, turtle)
-#
-#        pos = get_robot_pos()
-#
-#        if pos is None:
-#            continue
-#
-#        pos[2] -= i*2*pi/parts
-#
-#        successful += 1
-#        overall_pos[0] += pos[0]
-#        overall_pos[1] += pos[1]
-#        overall_pos[2] += pos[2]
-#
-#    if successful < 1:
-#        return None
-#
-#    return [overall_pos[0]/pictures_to_take,
-#            overall_pos[1]/pictures_to_take,
-#            overall_pos[2]/pictures_to_take]
-
 def count_robot_pos():    
     if rotate_to_center_net() is None:
         return None
@@ -288,33 +278,9 @@ def count_robot_pos():
             overall_pos[2]/successful + successful*pi/(2*segments)]
 
 
-#from one position, without moving in space
-#def count_robot_pos():
-#    successful = 0
-#    pictures_to_take = 3 #take three pictures
-#
-#    if rotate_to_center_net() is None:
-#        return None
-#
-#    overall_pos = [0, 0, 0]
-#
-#    for i in range(pictures_to_take):
-#        pos = get_robot_pos()
-#        if pos is not None:
-#            overall_pos[0] += pos[0]
-#            overall_pos[1] += pos[1]
-#            overall_pos[2] += pos[2]
-#            successful += 1
-#    print("Úspěchů:", successful) 
-#    if successful/pictures_to_take < 2/3:
-#        print("Malý podíl úspěšných fotek.")
-#        return None
-#
-#    return [overall_pos[0]/pictures_to_take,
-#            overall_pos[1]/pictures_to_take,
-#            overall_pos[2]/pictures_to_take]
-
 def get_robot_pos(): #or None if it cannot see the pillars
+
+    global net_measured
 
     hsv_image = take_hsv_picture()
     turtle.wait_for_point_cloud()
@@ -331,12 +297,14 @@ def get_robot_pos(): #or None if it cannot see the pillars
     #distance of pillars
     dp = two_pts_real_dst([x_c[0], y_c[0]], [x_c[1], y_c[1]], point_cloud)
     
-    if dp is None:
-        print("pillar dst not found")
-    else:
-        print('distance of pillars: ', dp)
+    if dp is None or dl is None or dr is None:
+        return None
+    
+    net_size = (net_measured*net_size + dp)/(net_measured + 1)
+    net_measured += 1
 
-    return count_pos(dl, dr, dp, x_c)
+
+    return count_pos(dl, dr, net_size, x_c)
 
 
 def main():
