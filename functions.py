@@ -160,57 +160,6 @@ def find_soccer_net_array(hsv_image):
 
     return soccer_net_array, x_pillar, y_pillar
 
- 
-def find_soccer_net_array(hsv_image):
-    lower = np.array([75, 80, 50])
-    upper = np.array([130, 255, 255])
-    bin_mask = cv2.inRange(hsv_image, lower, upper)
-
-    #plt.imshow(bin_mask)
-    #plt.show()
-
-    contours, hierarchy = cv2.findContours(bin_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-
-    soccer_net_array = []
-    possible_pillar = None
-    x_pillar = []
-    y_pillar = []
-
-    for cnt in contours:
-
-        actual_area = cv2.contourArea(cnt)
-        if actual_area < 500 or actual_area > 14000:
-            continue
-
-        possible_pillar = cnt
-
-        if not classify_pillar(possible_pillar):
-            continue
-        
-        soccer_net_array.append(cnt)
-        x_coord_of_pillar, y_coord_of_pillar = finding_midlle_of_contours(cnt)
-        x_pillar.append(x_coord_of_pillar)
-        y_pillar.append(y_coord_of_pillar)
-
-        continue
-
-    if(len(x_pillar) < 2):
-        x_pillar.append(None)
-        x_pillar.append(None)
-
-    if(len(y_pillar) < 2):
-        y_pillar.append(None)
-        y_pillar.append(None)
-
-
-    #print(f"Střed kontury1: {x_pillar[0]},Střed kontury2: {x_pillar[1]} ")
-
-    if(len(soccer_net_array) < 2):
-        soccer_net_array.append(None)
-        soccer_net_array.append(None)
-
-    return soccer_net_array, x_pillar, y_pillar
-
 
 def count_angular_speed(rad, curr_speed):
     speed = 0 
@@ -234,7 +183,7 @@ def find_ball(hsv_image):
     
     for cnt in contours:
         area = cv2.contourArea(cnt)
-        if area < 3000:
+        if area < 1000:
             continue
         possible_ball = cnt
 
@@ -262,39 +211,42 @@ def two_pts_real_dst(rgb_coords1, rgb_coords2, point_cloud, threshold=0.20, wind
         or not (0 <= rgb_coords2[0] < w and 0 <= rgb_coords2[1] < h)
     ):
         return None
-
-    #Find limits of a given window (window ie.: Area in which we look for pixels)
-    half_size = window_size // 2
-    x_min, x_max = max(0, x - half_size), min(w, x + half_size + 1)
-    y_min, y_max = max(0, y - half_size), min(h, y + half_size + 1)
     
+    res = []
 
-    #Compute neighborhood
-    neighborhood = point_cloud[y_min:y_max, x_min:x_max, :]
-    neighborhood = np.sqrt(neighborhood[..., 0]**2 + neighborhood[..., 2]**2)
-    #Filter out all NaN pixels
-    valid_values = neighborhood[~np.isnan(neighborhood)]
-    #Filter out pixels with depth 0
-    valid_values = valid_values[valid_values > 0]
+    for x, y in [rgb_coords1, rgb_coords2]:
+        #Find limits of a given window (window ie.: Area in which we look for pixels)
+        half_size = window_size // 2
+        x_min, x_max = max(0, x - half_size), min(w, x + half_size + 1)
+        y_min, y_max = max(0, y - half_size), min(h, y + half_size + 1)
+        
+        #Compute neighborhood
+        neighborhood = point_cloud[y_min:y_max, x_min:x_max, :]
+        x_neighborhood = neighborhood[...,0]
+        x_valid_values = x_neighborhood[~np.isnan(x_neighborhood)]
+        x_valid_values = x_valid_values[x_valid_values > 0]
 
-    #No valid values
-    if valid_values.size == 0:
-        print(f"Window too small or in an NaN lake")
-        return None
+        z_neighborhood = neighborhood[...,2]
+        z_valid_values = z_neighborhood[~np.isnan(z_neighborhood)]
+        z_valid_values = z_valid_values[z_valid_values > 0]
+        #x_neighborhood = neighborhood[ neighborhood[~np.isnan(neighborhood[...,0])] > 0]
+        #z_neighborhood = neighborhood[ neighborhood[~np.isnan(neighborhood[...,2])] > 0]
+        
 
-    #Find median among valid values
-    median_depth = np.median(valid_values)
-    #Compute threshold
-    similar_values = valid_values[np.abs(valid_values - median_depth) < threshold]
-    
-    if similar_values.size > 0:
-        return np.mean(similar_values)
-    else:
-        print("Threshold too narrow")
-        return None
+        if x_neighborhood.size == 0 or z_neighborhood.size == 0:
+            return None
 
+        x_median = np.median(x_neighborhood)
+        z_median = np.median(z_neighborhood)
 
+        #Compute threshold
+        x_sim_values = x_neighborhood[np.abs(x_neighborhood - x_median) < threshold]
+        z_sim_values = z_neighborhood[np.abs(z_neighborhood - z_median) < threshold]
 
+        res.append([np.mean(x_sim_values), np.mean(z_sim_values)])
+
+    print(*res)
+    return np.sqrt((res[0][0] - res[1][0])**2 + (res[0][1] - res[1][1])**2)
 
 
 def hood_depth(point_cloud, x, y, threshold=0.20, window_size=4):

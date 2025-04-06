@@ -1,4 +1,4 @@
-from functions import find_ball, find_ball_center, count_angular_speed, find_soccer_net_array, depth_of_pixel
+from functions import find_ball, find_ball_center, count_angular_speed, find_soccer_net_array
 from robolab_turtlebot import Turtlebot, Rate, get_time
 from simple_pid import PID
 from math import sqrt, pi

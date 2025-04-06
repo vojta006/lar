@@ -7,7 +7,7 @@ from math import pi, sqrt
 from time import sleep
 
 from calc import *
-from movements import * 
+from movements import *
 from functions import *
 
 # Initialize the Turtlebot instance
@@ -28,49 +28,59 @@ def take_hsv_picture():
     return cv2.cvtColor(bgr_image, cv2.COLOR_BGR2HSV)
 
 #alternative
-#def second_task():
-#
-#    event.wait()  # wait for button push
-#    
-#    success = False
-#
-#    while not success:
-#
-#        if rotate_to_center_ball() is None:
-#            print("We can't see the ball")
-#            print("Looking for the pillars")
-#
-#            pos = count_robot_pos()
-#            if pos is None:
-#                #We can't see the ball nor the pillars
-#                #TODO run some safety function
-#                return None
-#            go_to_pos(pos, [0, 2, 0], turtle)
-#            rotate_to_center_ball() #this may fail
-#    
-#        #go up to 1 meter from the ball
-#        ball_dst = measure_ball_dst() #it can return None
-#        print("ball dst:", ball_dst)
-#
-#        if ball_dst > 1:
-#            incremental_go_straight(ball_dst - 1, 1, turtle)
-#    
-#        pos = count_robot_pos()
-#        go_to_pos(pos, [0, 2, 0], turtle)
-#    
-#        pos = count_robot_pos()
-#        rot = rotate_to_center_ball()
-#        pos[2] += rot[2] #we have to update rotation
-#        rel_ball_pos = scan_ball_pos(pos, turtle) #this may fail
-#        ball_pos = [pos[0] + rel_ball_pos[0], pos[1] - rel_ball_pos[1], 0]
-#        pos_behind_the_ball = pos_behind_the_ball(ball_pos, 1.5)
-#        go_to_pos(pos, pos_behind_the_ball, turtle)
-#        break
-#    
-#        #TODO call PID function
-#        if hit_ball():
-#            success = True
+def second_task():
 
+    event.wait()  # wait for button push
+    
+    success = False
+
+    while not success:
+
+        if rotate_to_center_net() is None:
+            if rotate_to_center_ball(precision=50) is None:
+                print("ERROR: Unable to find ball nor the pillars. Exiting.")
+                exit(1)
+
+            ball_dst = measure_ball_dst()
+
+            if ball_dst > 0.5:
+                incremental_go_straight(ball_dst - 0.5, 1, turtle)
+            else:
+                rotate(pi/2, turtle)
+                rotate(pi/2, turtle)
+                incremental_go_straight(1, 1, turtle)
+
+            if rotate_to_center_net() is None:
+                print("ERROR: Unable to find the net. Exiting.")
+                exit(1)
+        
+        pos = get_robot_pos()
+
+        go_to_pos(pos, [0, 2.5, 0], turtle)
+        go_behind_the_ball()
+    
+        if hit_ball():
+            success = True
+
+def go_behind_the_ball():
+    if rotate_to_center_net() is None:
+        print("ERROR: Unable to find the net. Exiting.")
+        exit(1)
+
+    pos = get_robot_pos()
+    rot = rotate_to_center_ball(precision=30)
+    if rot is None:
+        print("ERROR: Robot can't see the ball. Exiting.")
+        exit(1)
+
+    pos[2] += rot[2] #we have to update rotation
+    rel_ball_pos = scan_ball_pos(pos, turtle) #this may fail
+    ball_pos = [pos[0] + rel_ball_pos[0], pos[1] - rel_ball_pos[1], 0]
+
+    pos_behind = pos_behind_the_ball(ball_pos, 1.5)
+    go_to_pos(pos, pos_behind, turtle)
+
+ 
 def hit_ball():#+angular is left
     print("----------------------------------Hit_ball")
     go_now = True
@@ -135,52 +145,16 @@ def ball_close(bx):#main thing is to hit ball straight
     turtle.cmd_velocity(linear = ampl_factor_lin*speed, angular=2*ampl_factor_ang)
 
 
-def second_task():
-    event.wait()
-    pos = count_robot_pos()
-    go_to_pos(pos, [0, 0.5, 0], turtle)
-
-
-
 #def second_task():
-#    event.wait()  # wait for button push
+#    event.wait()
+#    pos = get_robot_pos()
 #
-#    pos = count_robot_pos()
-#
-#    if pos is None:
-#        print("Nevidím sloupky")
-#        return
-#
-#    print(*pos)
+#    #pos = count_robot_pos()
 #
 #    go_to_pos(pos, [0, 2, 0], turtle)
-#
-#    pos = get_robot_pos()
-#    rot = rotate_to_center_ball()
-#    pos[2] += rot[2]
-#
-#    #pos = count_robot_pos() #x, y, rot; or None - then call this function in loop with rotating
-#
-#    #dest = [0, 3, 0]
-#    #go_to_pos(pos, dest, turtle)
-#    #pos = get_robot_pos()
-#
-#    #rotate to be aligned
-#    rel_ball_pos = scan_ball_pos(pos, turtle) #if it cannot see the ball, it returns None
-#    print("relative pos", *rel_ball_pos)
-#
-#    if rel_ball_pos is None:
-#        print("Nevidíme míč.")
-#        return
-#    
-#    ball_pos = [pos[0] + rel_ball_pos[0], pos[1] - rel_ball_pos[1], 0]
-#    print("Absolute ball pos:", *ball_pos)
-#    behind_the_ball = pos_behind_the_ball(ball_pos, 1.5)
-#    print("Pos behind_the_ball:", *behind_the_ball)
-#    go_to_pos(pos, behind_the_ball, turtle)
-#
+#    go_to_pos([0,2,0], [0, 0, 0], turtle)
 
-#TODO return None if it rotates more time around and cannot see the ball
+
 def rotate_to_center_ball(precision = 10): 
     
     rate = Rate(100)
@@ -353,8 +327,15 @@ def get_robot_pos(): #or None if it cannot see the pillars
     dl = hood_depth(point_cloud, x_c[0], y_c[0])
     dr = hood_depth(point_cloud, x_c[1], y_c[1])
 
+    #distance of pillars
+    dp = two_pts_real_dst([x_c[0], y_c[0]], [x_c[1], y_c[1]], point_cloud)
+    
+    if dp is None:
+        print("pillar dst not found")
+    else:
+        print('distance of pillars: ', dp)
 
-    return count_pos(dl, dr, x_c)
+    return count_pos(dl, dr, dp, x_c)
 
 
 def main():
