@@ -4,6 +4,35 @@ from simple_pid import PID
 from math import sqrt, pi
 import numpy as np
 
+def go_straight(meters, turtle):
+    print("GO_straight")
+    t = get_time()
+    final_speed = 0.8
+    time = abs(meters/final_speed)
+    rate = Rate(100)
+    
+    while (ta := (get_time() - t)) < time:
+        print(ta)
+        turtle.cmd_velocity(linear=final_speed)
+        rate.sleep()
+
+    turtle.cmd_velocity(linear=0)
+
+
+def simple_rotate(angle, turtle):
+    rate = Rate(100)
+    t = get_time()
+    angle *= 16/10 
+    speed = pi/3
+    time = angle/speed
+
+    while get_time() - t < time:
+        turtle.cmd_velocity(angular=speed)
+        rate.sleep()
+    
+    turtle.cmd_velocity(angular=0)
+
+
 def incremental_go_straight(wanted_dist, max_speed, turtle: Turtlebot):
     #Acceleration speed const
     alpha = 0.15

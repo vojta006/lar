@@ -21,6 +21,62 @@ def classify_circle(possible_ball):
     else:
         return False
 
+def find_ball_xcenter(hsv_img):
+    ball = find_ball(hsv_img)
+    
+    if (ball is not None):
+        print("Length of ball", len(ball))
+        b_coords = find_ball_center(ball)
+        bx = b_coords[0]
+        by = b_coords[1]
+    else: 
+        print("bx = None")
+        bx = None
+    return bx,ball
+
+def finding_leftmost_point(cnt):
+    x_coords = [point[0][0] for point in cnt]  # Extrahujeme X souřadnice
+    min_x = min(x_coords)  # Najdeme nejmenší X souřadnici
+    return min_x
+
+def finding_righttmost_point(cnt):
+    x_coords = [point[0][0] for point in cnt]  # Extrahujeme X souřadnice
+    max_x = max(x_coords)  # Najdeme nejmenší X souřadnici
+    return max_x
+
+def find_width_of_ball(cnt):
+    x_coords = [point[0][0] for point in cnt]  # Extrahujeme X souřadnice
+    min_x = min(x_coords)  # Najdeme nejmenší X souřadnici
+    max_x = max(x_coords)  # Najdeme nejmenší X souřadnici
+    width = max_x-min_x
+    return width
+
+def goalnet_center_by_one_pillar(p1x,bx,cnt):
+    if(p1x>bx):
+        min_x = finding_leftmost_point(cnt)
+        half_of_pillar = p1x - min_x
+        middle_goalnet = p1x-11*half_of_pillar#11 in case, that pillar width is 7cm and goalnet width is 70 cm
+        return middle_goalnet
+    else:
+        max_x = finding_righttmost_point(cnt)
+        half_of_pillar = max_x-p1x
+        middle_goalnet = p1x+11*half_of_pillar
+        return middle_goalnet
+
+def find_goalnet_center(hsv_img,bx):
+    soccer_net_array, x_pillar, y_pillar = find_soccer_net_array(hsv_img)
+    if(x_pillar[0] != None and x_pillar[1] != None):
+        xp1 = x_pillar[0]
+        xp2 = x_pillar[1]
+        mpx = (xp1+xp2)/2
+    elif (x_pillar[0] != None and x_pillar[1] == None):
+        mpx = goalnet_center_by_one_pillar(x_pillar[0],bx,soccer_net_array[0])
+    else:
+        mpx = None
+    return(mpx)
+
+
+
 def obj_cooords(hull):
     moments = cv2.moments(hull)
 
@@ -53,6 +109,9 @@ def finding_midlle_of_contours(cnt):
     center_y = int(round(sum(y_coords) / len(y_coords)))
 
     return center_x, center_y
+
+#TODO function that takes two points x,y and counts their distance
+
 
 def find_soccer_net_array(hsv_image):
     #This fuction sort pillars by their mass of conotur area
@@ -101,6 +160,57 @@ def find_soccer_net_array(hsv_image):
 
     return soccer_net_array, x_pillar, y_pillar
 
+ 
+def find_soccer_net_array(hsv_image):
+    lower = np.array([75, 80, 50])
+    upper = np.array([130, 255, 255])
+    bin_mask = cv2.inRange(hsv_image, lower, upper)
+
+    #plt.imshow(bin_mask)
+    #plt.show()
+
+    contours, hierarchy = cv2.findContours(bin_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+
+    soccer_net_array = []
+    possible_pillar = None
+    x_pillar = []
+    y_pillar = []
+
+    for cnt in contours:
+
+        actual_area = cv2.contourArea(cnt)
+        if actual_area < 500 or actual_area > 14000:
+            continue
+
+        possible_pillar = cnt
+
+        if not classify_pillar(possible_pillar):
+            continue
+        
+        soccer_net_array.append(cnt)
+        x_coord_of_pillar, y_coord_of_pillar = finding_midlle_of_contours(cnt)
+        x_pillar.append(x_coord_of_pillar)
+        y_pillar.append(y_coord_of_pillar)
+
+        continue
+
+    if(len(x_pillar) < 2):
+        x_pillar.append(None)
+        x_pillar.append(None)
+
+    if(len(y_pillar) < 2):
+        y_pillar.append(None)
+        y_pillar.append(None)
+
+
+    #print(f"Střed kontury1: {x_pillar[0]},Střed kontury2: {x_pillar[1]} ")
+
+    if(len(soccer_net_array) < 2):
+        soccer_net_array.append(None)
+        soccer_net_array.append(None)
+
+    return soccer_net_array, x_pillar, y_pillar
+
 
 def count_angular_speed(rad, curr_speed):
     speed = 0 
@@ -143,6 +253,50 @@ def find_ball_center(ball):
 
     return [None, None]
 
+
+def two_pts_real_dst(rgb_coords1, rgb_coords2, point_cloud, threshold=0.20, window_size=4):
+    h, w, _ = point_cloud.shape
+
+    #Out of bounds
+    if( not (0 <= rgb_coords1[0] < w and 0 <= rgb_coords1[1] < h)
+        or not (0 <= rgb_coords2[0] < w and 0 <= rgb_coords2[1] < h)
+    ):
+        return None
+
+    #Find limits of a given window (window ie.: Area in which we look for pixels)
+    half_size = window_size // 2
+    x_min, x_max = max(0, x - half_size), min(w, x + half_size + 1)
+    y_min, y_max = max(0, y - half_size), min(h, y + half_size + 1)
+    
+
+    #Compute neighborhood
+    neighborhood = point_cloud[y_min:y_max, x_min:x_max, :]
+    neighborhood = np.sqrt(neighborhood[..., 0]**2 + neighborhood[..., 2]**2)
+    #Filter out all NaN pixels
+    valid_values = neighborhood[~np.isnan(neighborhood)]
+    #Filter out pixels with depth 0
+    valid_values = valid_values[valid_values > 0]
+
+    #No valid values
+    if valid_values.size == 0:
+        print(f"Window too small or in an NaN lake")
+        return None
+
+    #Find median among valid values
+    median_depth = np.median(valid_values)
+    #Compute threshold
+    similar_values = valid_values[np.abs(valid_values - median_depth) < threshold]
+    
+    if similar_values.size > 0:
+        return np.mean(similar_values)
+    else:
+        print("Threshold too narrow")
+        return None
+
+
+
+
+
 def hood_depth(point_cloud, x, y, threshold=0.20, window_size=4):
     "Returns the depth of a neighborhood of a given pixel in range 640(x) 480(y)"
     #Returns point cloud shape
@@ -182,24 +336,3 @@ def hood_depth(point_cloud, x, y, threshold=0.20, window_size=4):
     else:
         print("Threshold too narrow")
         return None
-
-def depth_of_pixel(point_cloud, x, y):
-    "Returns the depth of a given pixel in range 640(x) 480(y)"
-    #Returns point cloud shape
-    h, w, _ = point_cloud.shape
-
-    #Out of bounds
-    if not (0 <= x < w and 0 <= y < h):
-        return None
-
-    point = point_cloud[y, x]  # OpenCV/NumPy indexing (column,row)
-
-    #Given pixel is without value
-    if np.isnan(point).any():
-        return None
-
-    #Get depth
-    depth = point[2] #point = [h,w,d]
-
-    return depth
-
