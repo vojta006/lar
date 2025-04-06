@@ -72,8 +72,10 @@ def take_hsv_picture():
 #            success = True
 
 def hit_ball():#+angular is left
+    print("----------------------------------Hit_ball")
     go_now = True
     rate = Rate(100)
+    delta_x = None
     rotate_to_center_ball()
     
     while(go_now == True):
@@ -88,11 +90,15 @@ def hit_ball():#+angular is left
         else:
             b_width = find_width_of_ball(ball)
             if(b_width < (640/6)):
-                ball_far_far_away(bx,hsv_img)
-            else:
+                delta_x = ball_far_far_away(bx,hsv_img)
+            elif(delta_x != None and delta_x < 30):
                 ball_close(bx)
+            else:
+                print("robot couldnt hanlde the regulation so it shoud start from beginning")
+                return False
         rate.sleep()
 
+    return True
 def ball_far_far_away(bx,hsv_img):#main thing is to get ball center to the center of goalnet
     
     rad_per_pixel = 1.63*10**(-3)#pi/3/640
