@@ -101,7 +101,7 @@ def hit_ball():#+angular is left
             b_width = find_width_of_ball(ball)
             if(b_width < (640/6)):
                 delta_x = ball_far_far_away(bx,hsv_img)
-            elif(delta_x != None and delta_x < 35): #35 pixels difference is not good enough for our goal
+            elif(delta_x != None and abs(delta_x) < 35): #35 pixels difference is not good enough for our goal
                 ball_close(bx)
             else:
                 print("robot couldnt hanlde the regulation so it shoud start from beginning")
