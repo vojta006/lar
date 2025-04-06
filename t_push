@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the remote destination
-REMOTE_DEST="turtle33:~/robot"
+REMOTE_DEST="turtle:~/robot"
 
 # Define the files to copy
 FILES=("./second_task.py" "./functions.py" "./movements.py" "./calc.py")

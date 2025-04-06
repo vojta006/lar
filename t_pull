@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the remote source
-REMOTE_SOURCE="turtle33:~/robot/*"
+REMOTE_SOURCE="turtle:~/robot/*"
 
 # Define the local destination folder
 LOCAL_DEST="."
