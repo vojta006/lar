@@ -105,6 +105,7 @@ def hit_ball():#+angular is left
                 ball_close(bx)
             else:
                 print("robot couldnt hanlde the regulation so it shoud start from beginning")
+                turtle.play_sound(6)
                 return False
         rate.sleep()
 
