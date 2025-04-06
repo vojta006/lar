@@ -226,7 +226,7 @@ def count_angular_speed(rad, curr_speed):
 def find_ball(hsv_image):
 
     lower = np.array([18, 130, 45])
-    upper = np.array([130, 255, 255])
+    upper = np.array([30, 255, 255])
     bin_mask = cv2.inRange(hsv_image, lower, upper)
     
     contours, hierarchy = cv2.findContours(bin_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
