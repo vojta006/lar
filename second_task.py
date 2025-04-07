@@ -1,4 +1,3 @@
-from __future__ import print_function
 import cv2
 import numpy as np
 import threading
@@ -112,7 +111,7 @@ def hit_ball():#+angular is left
             b_width = find_width_of_ball(ball)
             if(b_width < (640/5)):
                 delta_x = ball_far_far_away(bx,hsv_img)
-            elif(delta_x != None and abs(delta_x) < 35): #35 pixels difference is not good enough for our goal
+            elif(delta_x != None and abs(delta_x) < 150): #35 pixels difference is not good enough for our goal
                 ball_close(bx)
             else:
                 print("robot couldnt handle the regulation so it should start from the beginning")
@@ -150,27 +149,26 @@ def ball_close(bx):#main thing is to hit ball straight
     max_ang_speed = 2
     
     delta_x = (picture_middle - bx)
-    ampl_factor_ang =  rad_per_pixel * delta_x
+    ampl_factor_ang = rad_per_pixel * delta_x
     ampl_factor_ang = max(-max_ang_speed, min(ampl_factor_ang, max_ang_speed))
     #ampl_factor_lin = picture_middle/(picture_middle+abs(delta_x))
     ampl_factor_lin = max(0.05, min(1.0, picture_middle / (picture_middle + abs(delta_x))))
 
     turtle.cmd_velocity(linear = ampl_factor_lin*speed, angular=2*ampl_factor_ang)
 
-
-def second_task():
-    event.wait()
-    pos = get_robot_pos()
-    go_to_pos(pos, [0, 2, 0], turtle)
-    pos = get_robot_pos()
-    print("Pos [0, 2, 0] is in fact: " *pos)
-    go_behind_the_ball(1)
-    hit_ball()
-
-    pos = scan_ball_pos([0,0,0], turtle)
-    print(pos)
-    go_to_pos([0,0,0], [pos[0], -pos[1], 0], turtle)
-
+#def second_task():
+#    event.wait()
+#    pos = get_robot_pos()
+#    go_to_pos(pos, [0, 2, 0], turtle)
+#    pos = get_robot_pos()
+#    print("Pos [0, 2, 0] is in fact: ", *pos)
+#    go_behind_the_ball(1)
+#    hit_ball()
+#
+#    pos = scan_ball_pos([0,0,0], turtle)
+#    print(pos)
+#    go_to_pos([0,0,0], [pos[0], -pos[1], 0], turtle)
+#
 
 def rotate_to_center_ball(precision = 10): 
     
@@ -281,6 +279,7 @@ def count_robot_pos():
 def get_robot_pos(): #or None if it cannot see the pillars
 
     global net_measured
+    global net_size
 
     hsv_image = take_hsv_picture()
     turtle.wait_for_point_cloud()

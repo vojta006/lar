@@ -12,7 +12,6 @@ def go_straight(meters, turtle):
     rate = Rate(100)
     
     while (ta := (get_time() - t)) < time:
-        print(ta)
         turtle.cmd_velocity(linear=final_speed)
         rate.sleep()
 
@@ -38,7 +37,6 @@ def incremental_go_straight(wanted_dist, max_speed, turtle: Turtlebot):
     alpha = 0.15
     #Minimal movement speed const
     min_speed = 0.1  
-    #Boolean, true if turtle travelled more than dis_comp_const of distance
     tquarts = False
     #Constant for setting a point at which turtle start slowing down
     dis_comp_const = 0.6
@@ -100,10 +98,8 @@ def rotate(rot_rad, turtle: Turtlebot):
     turtle.wait_for_odometry()
 
     rate = Rate(100)
-    print(f"rotating for {rot_rad}")
     speed = 0.3
     direction = np.sign(rot_rad)
-    print(direction)
 
     while True:
         x, y, alpha = turtle.get_odometry()

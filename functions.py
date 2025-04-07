@@ -55,7 +55,7 @@ def goalnet_center_by_one_pillar(p1x,bx,cnt, net_width):
     if(p1x>bx):
         min_x = finding_leftmost_point(cnt)
         half_of_pillar = p1x - min_x
-        middle_goalnet = p1x-net_width/2.5*half_of_pillar#11 in case, that pillar width is 7cm and goalnet width is 70 cm
+        middle_goalnet = int(p1x-net_width/(2.5*half_of_pillar + 1)) #11 in case, that pillar width is 7cm and goalnet width is 70 cm
         return middle_goalnet
     else:
         max_x = finding_righttmost_point(cnt)
@@ -63,14 +63,14 @@ def goalnet_center_by_one_pillar(p1x,bx,cnt, net_width):
         middle_goalnet = p1x+net_width/2.5*half_of_pillar
         return middle_goalnet
 
-def find_goalnet_center(hsv_img,bx):
+def find_goalnet_center(hsv_img,bx, net_size):
     soccer_net_array, x_pillar, y_pillar = find_soccer_net_array(hsv_img)
     if(x_pillar[0] != None and x_pillar[1] != None):
         xp1 = x_pillar[0]
         xp2 = x_pillar[1]
         mpx = (xp1+xp2)/2
     elif (x_pillar[0] != None and x_pillar[1] == None):
-        mpx = goalnet_center_by_one_pillar(x_pillar[0],bx,soccer_net_array[0])
+        mpx = goalnet_center_by_one_pillar(x_pillar[0],bx,soccer_net_array[0], net_size)
     else:
         mpx = None
     return(mpx)
@@ -109,8 +109,6 @@ def finding_midlle_of_contours(cnt):
     center_y = int(round(sum(y_coords) / len(y_coords)))
 
     return center_x, center_y
-
-#TODO function that takes two points x,y and counts their distance
 
 
 def find_soccer_net_array(hsv_image):

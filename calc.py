@@ -24,7 +24,7 @@ def count_pos(dl, dr, dp, x_coords):
     if beta < pi/2:
         xr = -xr
    
-    return [xr + 0.35, y, count_rotation(alpha, beta, x_coords[0], x_coords[1])]
+    return [xr + dp/2, y, count_rotation(alpha, beta, x_coords[0], x_coords[1])]
 
 
 #jsou sloupky dostatečně ve středu obrázku?
