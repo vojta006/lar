@@ -102,6 +102,7 @@ def hit_ball():#+angular is left
         hsv_img = take_hsv_picture()
         bx, ball = find_ball_xcenter(hsv_img)
         if bx== None and close_flag == True :
+            print("FINAL_HIT")
             go_straight(0.5, turtle)
             break
         elif(bx == None):
