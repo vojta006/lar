@@ -111,12 +111,8 @@ def hit_ball():#+angular is left
             b_width = find_width_of_ball(ball)
             if(b_width < (640/5)):
                 delta_x = ball_far_far_away(bx,hsv_img)
-            elif(delta_x != None and abs(delta_x) < 150): #35 pixels difference is not good enough for our goal
-                ball_close(bx)
             else:
-                print("robot couldnt handle the regulation so it should start from the beginning")
-                turtle.play_sound(6)
-                return False
+                ball_close(bx)
         rate.sleep()
 
     return True
