@@ -113,8 +113,8 @@ def finding_midlle_of_contours(cnt):
 
 def find_soccer_net_array(hsv_image):
     #This fuction sort pillars by their mass of conotur area
-    lower = np.array([75, 80, 50])
-    upper = np.array([130, 255, 255])
+    lower = np.array([80, 80, 50])
+    upper = np.array([100, 255, 255])
     bin_mask = cv2.inRange(hsv_image, lower, upper)
 
     contours, hierarchy = cv2.findContours(bin_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
@@ -125,7 +125,7 @@ def find_soccer_net_array(hsv_image):
 
     # Filtrovat a seřadit kontury podle velikosti (od největší po nejmenší)
     sorted_contours = sorted(
-        [cnt for cnt in contours if 500 <= cv2.contourArea(cnt) <= 14000 and classify_pillar(cnt)],
+        [cnt for cnt in contours if 200 <= cv2.contourArea(cnt) <= 25000 and classify_pillar(cnt)],
         key=cv2.contourArea,
         reverse=True
     )
@@ -172,7 +172,7 @@ def count_angular_speed(rad, curr_speed):
 
 def find_ball(hsv_image):
 
-    lower = np.array([18, 130, 45])
+    lower = np.array([22, 150, 45])
     upper = np.array([30, 255, 255])
     bin_mask = cv2.inRange(hsv_image, lower, upper)
     

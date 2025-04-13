@@ -7,7 +7,7 @@ import numpy as np
 def go_straight(meters, turtle):
     print("GO_straight")
     t = get_time()
-    final_speed = 0.8
+    final_speed = 1.6
     time = abs(meters/final_speed)
     rate = Rate(100)
     

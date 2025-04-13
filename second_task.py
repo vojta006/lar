@@ -1,5 +1,4 @@
 import cv2
-import numpy as np
 import threading
 from robolab_turtlebot import Turtlebot, Rate, get_time
 from math import pi, sqrt
@@ -8,6 +7,7 @@ from time import sleep
 from calc import *
 from movements import *
 from functions import *
+import sys
 
 # Initialize the Turtlebot instance
 turtle = Turtlebot(rgb=True, depth=True, pc=True)
@@ -16,10 +16,25 @@ speed = 0.2
 close_flag = False
 net_size = 0
 net_measured = 0
+running = False
 
 def button_event(msg):
-    global event
+    global event, running
+    running = True
     event.set()
+
+def bumper_event(msg):
+    global program_thread, running
+    print("button event registered")
+    print("running: ", running)
+    if running:
+        turtle.cmd_velocity(linear=0, angular=0)
+        running = False
+        print("Robot do něčeho narazil.")
+        print("Ukončování programu.")
+        sys.exit(1)
+
+
 
 def take_hsv_picture():
     while True:
@@ -32,6 +47,8 @@ def take_hsv_picture():
 def second_task():
 
     event.wait()  # wait for button push
+    global running
+    print(": ", running)
     
     success = False
 
@@ -56,6 +73,9 @@ def second_task():
                 exit(1)
         
         pos = get_robot_pos()
+        if pos is None:
+            print("ERROR: Can't recognise pillars. Exiting.")
+            exit(1)
 
         go_to_pos(pos, [0, 2, 0], turtle)
         go_behind_the_ball()
@@ -103,7 +123,7 @@ def hit_ball():#+angular is left
         bx, ball = find_ball_xcenter(hsv_img)
         if bx== None and close_flag == True :
             print("FINAL_HIT")
-            go_straight(0.5, turtle)
+            go_straight(1, turtle)
             break
         elif(bx == None):
             rotate_to_center_ball()
@@ -153,19 +173,6 @@ def ball_close(bx):#main thing is to hit ball straight
 
     turtle.cmd_velocity(linear = ampl_factor_lin*speed, angular=2*ampl_factor_ang)
 
-#def second_task():
-#    event.wait()
-#    pos = get_robot_pos()
-#    go_to_pos(pos, [0, 2, 0], turtle)
-#    pos = get_robot_pos()
-#    print("Pos [0, 2, 0] is in fact: ", *pos)
-#    go_behind_the_ball(1)
-#    hit_ball()
-#
-#    pos = scan_ball_pos([0,0,0], turtle)
-#    print(pos)
-#    go_to_pos([0,0,0], [pos[0], -pos[1], 0], turtle)
-#
 
 def rotate_to_center_ball(precision = 10): 
     
@@ -236,6 +243,7 @@ def measure_ball_dst():
     return dst
 
 def rotate_to_center_net():
+    print("Rotate to center net started.")
 
     for _ in range(18):
         hsv_image = take_hsv_picture()
@@ -247,30 +255,6 @@ def rotate_to_center_net():
         simple_rotate(pi/8, turtle)
 
     return None
-
-def count_robot_pos():    
-    if rotate_to_center_net() is None:
-        return None
-
-    successful = 0
-    overall_pos = [0, 0, 0]
-    segments = 9
-
-    for i in range(segments):
-        pos = get_robot_pos()
-        if pos is None:
-            break
-        successful += 1
-        pos[2] -= (i*pi)/(2*segments)
-        print(pos[2])
-        overall_pos[0] += pos[0]
-        overall_pos[1] += pos[1]
-        overall_pos[2] += pos[2]
-        rotate(pi/(2*segments), turtle)
-
-    return [overall_pos[0]/successful,
-            overall_pos[1]/successful,
-            overall_pos[2]/successful + successful*pi/(2*segments)]
 
 
 def get_robot_pos(): #or None if it cannot see the pillars
@@ -304,10 +288,10 @@ def get_robot_pos(): #or None if it cannot see the pillars
 
 
 def main():
-    global event
+    global event, program_thread
     event = threading.Event()
-    turtle.register_bumper_event_cb(button_event)
-    event.set()
+    turtle.register_bumper_event_cb(bumper_event)
+    turtle.register_button_event_cb(button_event)
     
     # Start the second task in a separate thread
     program_thread = threading.Thread(target=second_task)

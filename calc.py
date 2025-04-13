@@ -44,7 +44,6 @@ def pos_behind_the_ball(ball_pos, dst):
 def pixel_to_angle(x_pixel):
     return -(x_pixel - 343)*0.0015
 
-#we assume that the ball is directly in front of the robot
 def count_relative_ball_pos(b_coords, curr_pos, turtle):
     turtle.wait_for_point_cloud()
     point_cloud = turtle.get_point_cloud()
@@ -61,7 +60,7 @@ def count_relative_ball_pos(b_coords, curr_pos, turtle):
 
 def count_rotation(alpha, beta, xl, xr):
     #print(alpha/(xr-xl)) #= 0.0015 rad/pixel
-    #how much are we rotated from to be aligned with right pillar
+    #how much are we rotated from to be aligned with the right pillar
     delta = alpha*(xr-343)/(xr-xl) #rad
     pos = delta + beta - pi/2
 
